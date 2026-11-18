@@ -2,7 +2,7 @@
 title: Friday Night Mahjong Club
 kind: event
 recurring: Every Friday
-time: 7:30 pm
+time: 6:30 pm
 location: Our studio
 glyph: 東
 ---
