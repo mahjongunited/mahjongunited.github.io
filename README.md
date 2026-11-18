@@ -1,2 +1,2 @@
 # mahjongunited
-mahjongunited.org
+Organized by Jennie Mak
