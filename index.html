@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mahjong United</title>
+<meta name="description" content="Mahjong United — events, open classes, and private lessons with Jennie Mak.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Serif+SC:wght@500;700;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161311;
+    --ink-2:#2a2420;
+    --ivory:#f4ecd9;
+    --ivory-2:#e9dfc8;
+    --ivory-3:#d8cbae;
+    --red:#b5302c;
+    --red-2:#8f2320;
+    --jade:#2f7a5b;
+    --jade-2:#1f5a42;
+    --jade-3:#174733;
+    --blue:#2b4c7e;
+    --gold:#c9a24a;
+    --gold-2:#a8853a;
+    --felt:#1a3a2f;
+    --felt-2:#122a22;
+    --tile-w:118px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"DM Sans",system-ui,sans-serif;
+    color:var(--ivory);
+    background:
+      radial-gradient(1200px 700px at 15% -10%, rgba(201,162,74,.10), transparent 60%),
+      radial-gradient(900px 600px at 95% 110%, rgba(181,48,44,.14), transparent 60%),
+      linear-gradient(180deg,#132d25 0%, #0f241d 50%, #0b1b16 100%);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  /* felt texture */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- header ---------- */
+  header{
+    position:sticky;top:0;z-index:20;
+    display:flex;align-items:center;justify-content:space-between;gap:24px;
+    padding:14px clamp(16px,4vw,48px);
+    background:linear-gradient(180deg, rgba(11,27,22,.92), rgba(11,27,22,.72) 70%, rgba(11,27,22,0));
+    backdrop-filter:blur(6px);
+  }
+  .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ivory)}
+  .brand .mini{
+    width:34px;height:44px;border-radius:5px;
+    background:linear-gradient(180deg,var(--ivory),var(--ivory-2));
+    border-bottom:5px solid var(--jade);
+    box-shadow:0 2px 0 var(--jade-2),0 6px 14px rgba(0,0,0,.4);
+    display:grid;place-items:center;
+    font-family:"Noto Serif SC",serif;font-weight:900;color:var(--red);font-size:20px;line-height:1;
+  }
+  .brand .word{font-family:"Cormorant Garamond",serif;font-size:22px;letter-spacing:.06em;font-weight:500}
+  .brand .word em{font-style:normal;color:var(--gold)}
+  nav{display:flex;gap:clamp(12px,2.5vw,32px);font-size:13px;letter-spacing:.14em;text-transform:uppercase}
+  nav a{color:var(--ivory-2);text-decoration:none;opacity:.85;position:relative;padding:6px 0}
+  nav a::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:1px;background:var(--gold);transition:right .3s}
+  nav a:hover{opacity:1}
+  nav a:hover::after{right:0}
+  nav .cta{color:var(--gold)}
+  @media (max-width:640px){ nav a:not(.cta){display:none} }
+
+  /* ---------- grid ---------- */
+  main{position:relative;z-index:1;padding:8px clamp(12px,3vw,40px) 60px}
+  .wall{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(var(--tile-w),1fr));
+    grid-auto-rows:calc(var(--tile-w) * 1.36);
+    grid-auto-flow:dense;
+    gap:10px;
+    perspective:1600px;
+    max-width:1500px;margin:0 auto;
+  }
+  @media (max-width:900px){ :root{--tile-w:98px} .wall{gap:8px} }
+  @media (max-width:520px){ :root{--tile-w:84px} .wall{gap:6px} }
+
+  .tile{
+    position:relative;border-radius:9px;
+    transform-style:preserve-3d;
+    opacity:0;transform:translateY(24px) rotateX(12deg);
+    animation:drop .7s cubic-bezier(.2,.8,.2,1) forwards;
+    animation-delay:var(--d,0ms);
+    transition:transform .35s cubic-bezier(.2,.8,.2,1), filter .35s;
+    will-change:transform;
+    --tilt-x:0deg;--tilt-y:0deg;--rot:0deg;
+  }
+  @keyframes drop{to{opacity:1;transform:translateY(0) rotateX(0) rotate(var(--rot))}}
+  .tile.ready{animation:none;opacity:1;transform:rotate(var(--rot)) rotateX(var(--tilt-x)) rotateY(var(--tilt-y))}
+  .tile.ready:hover{transform:rotate(0deg) translateY(-6px) scale(1.03) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));z-index:5;filter:drop-shadow(0 18px 24px rgba(0,0,0,.45))}
+
+  /* flip container */
+  .inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.4,0,.2,1)}
+  .tile.down .inner{transform:rotateY(180deg)}
+  .tile.down{cursor:pointer}
+  .tile.down:hover{filter:drop-shadow(0 18px 24px rgba(0,0,0,.45)) brightness(1.08)}
+  .face,.back{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+  /* tile back: jade with a woven pattern and gold frame */
+  .back{
+    position:absolute;inset:0;border-radius:9px;overflow:hidden;transform:rotateY(180deg);
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.035) 0 3px, transparent 3px 9px),
+      repeating-linear-gradient(-45deg, rgba(0,0,0,.08) 0 3px, transparent 3px 9px),
+      radial-gradient(120% 90% at 30% 10%, #3b8a68 0%, #2a6b50 45%, #1d4f3b 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.25),
+      inset 0 -2px 0 rgba(0,0,0,.2),
+      0 7px 0 #d9ccaa,
+      0 8px 0 #c3b48f,
+      0 14px 24px rgba(0,0,0,.45);
+  }
+  .back::before{content:"";position:absolute;inset:9px;border:1.5px solid rgba(201,162,74,.55);border-radius:5px}
+  .back::after{
+    content:"雀";position:absolute;inset:0;display:grid;place-items:center;
+    font-family:"Noto Serif SC",serif;font-weight:900;font-size:28px;color:rgba(201,162,74,.55);
+  }
+  .tile.event .back::after,.tile.title .back::after{font-size:52px}
+
+  /* ---------- expanded tile overlay ---------- */
+  /* the overlay lives in page coordinates so the big tile grows where the clicked tile sits */
+  #overlay{position:absolute;left:0;top:0;width:100%;height:0;overflow:visible;z-index:40;display:none;pointer-events:none}
+  #overlay.on{display:block}
+  #overlay .big{pointer-events:auto}
+  #overlay .dim{position:fixed;inset:0;background:rgba(6,16,12,.55);backdrop-filter:blur(3px);opacity:0;transition:opacity .5s}
+  #overlay .cap.cap{position:fixed}
+  #overlay.in .dim{opacity:1}
+  #overlay .big{position:absolute;left:0;top:0;transform-origin:top left;border-radius:9px;transition:transform .7s cubic-bezier(.4,0,.2,1),width .7s,height .7s;cursor:zoom-out}
+  #overlay .big .face{border-radius:12px}
+  #overlay .big .card h3{font-size:clamp(28px,4vw,46px)}
+  #overlay .big .card .meta{font-size:clamp(14px,1.6vw,19px);margin-top:14px}
+  #overlay .big .card .kicker{font-size:12px}
+  .card .body, #overlay .big .card .body:empty{display:none}
+  #overlay .big .card .go{display:none}
+  #overlay .big .card .body{
+    display:block;margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.18);
+    font-size:clamp(13px,1.3vw,16px);line-height:1.55;max-height:38vh;overflow:auto;padding-right:6px;
+    opacity:0;animation:bodyIn .5s .45s forwards;
+  }
+  .tile.gold .card .body, #overlay .big.gold .card .body{border-top-color:rgba(0,0,0,.18)}
+  @keyframes bodyIn{to{opacity:.92}}
+  .card .body p{margin:0 0 .8em}
+  .card .body p:last-child{margin-bottom:0}
+  .card .body h4{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:1.25em;margin:1em 0 .3em}
+  .card .body ul{margin:0 0 .8em;padding-left:1.2em}
+  .card .body a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+  .card .body b{font-weight:500}
+  #overlay .big .card .go{font-size:13px}
+  #overlay .big .card .glyph{font-size:clamp(160px,22vw,300px);bottom:-40px;right:-12px}
+  #overlay .big .card.hero h1{font-size:clamp(44px,7vw,96px)}
+  #overlay .big .card.hero p{font-size:clamp(14px,1.6vw,19px);max-width:40ch}
+  #overlay .cap{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:max(28px,6vh);
+    font-family:"Cormorant Garamond",serif;font-size:clamp(20px,2.6vw,30px);font-style:italic;color:var(--ivory);
+    letter-spacing:.04em;opacity:0;transition:opacity .5s .4s;pointer-events:none;text-align:center;
+  }
+  #overlay .cap small{display:block;font-family:"DM Sans",sans-serif;font-style:normal;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ivory-3);margin-top:6px}
+  #overlay.in .cap{opacity:1}
+
+  /* tile body: ivory face + colored back edge */
+  .face{
+    position:absolute;inset:0;border-radius:9px;overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 30% 10%, #fbf6ea 0%, var(--ivory) 45%, var(--ivory-2) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.9),
+      inset 0 -2px 0 rgba(0,0,0,.06),
+      inset 1px 0 0 rgba(255,255,255,.5),
+      0 7px 0 var(--jade-2),
+      0 8px 0 var(--jade-3),
+      0 14px 24px rgba(0,0,0,.45);
+  }
+  .face::after{ /* glossy sheen */
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(115deg, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 35%, rgba(0,0,0,0) 65%, rgba(0,0,0,.05) 100%);
+  }
+  .face svg{position:absolute;inset:0;width:100%;height:100%}
+
+  /* ---------- event tiles ---------- */
+  .tile.event{grid-column:span 2;grid-row:span 2}
+  .tile.wide{grid-column:span 2;grid-row:span 1}
+  .tile.title{grid-column:span 3;grid-row:span 2}
+  @media (max-width:520px){ .tile.title{grid-column:span 3} }
+
+  .tile.event .face,.tile.title .face{
+    background:
+      radial-gradient(120% 100% at 20% 0%, rgba(255,255,255,.14), transparent 50%),
+      linear-gradient(160deg, var(--c1) 0%, var(--c2) 100%);
+    color:var(--ivory);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.25),
+      inset 0 0 0 1px rgba(255,255,255,.06),
+      0 7px 0 var(--e1),
+      0 8px 0 var(--e2),
+      0 14px 24px rgba(0,0,0,.5);
+  }
+  .tile.event.red{--c1:#c43a33;--c2:#7e1d1a;--e1:#5e1512;--e2:#45100e}
+  .tile.event.jade{--c1:#2f7a5b;--c2:#163f30;--e1:#0f2e23;--e2:#0a2019}
+  .tile.event.ink{--c1:#3a332d;--c2:#161311;--e1:#0c0a09;--e2:#060505}
+  .tile.event.gold{--c1:#d4ad52;--c2:#8d6c25;--e1:#64491a;--e2:#4a3613;color:var(--ink)}
+  .tile.event.gold .face{color:var(--ink)}
+  .tile.title{--c1:#f6efdf;--c2:#e5dac2;--e1:var(--jade-2);--e2:var(--jade-3)}
+  .tile.title .face{color:var(--ink)}
+
+  .card{position:absolute;inset:0;padding:clamp(12px,2vw,22px);display:flex;flex-direction:column;justify-content:space-between;text-decoration:none;color:inherit}
+  .card .kicker{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;opacity:.8;display:flex;align-items:center;gap:8px}
+  .card .kicker::before{content:"";width:18px;height:1px;background:currentColor;opacity:.6}
+  .card h3{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:clamp(20px,2.4vw,30px);line-height:1.05;margin:10px 0 0;letter-spacing:.01em}
+  .card .meta{font-size:12.5px;line-height:1.5;opacity:.9;margin-top:8px}
+  .card .meta b{font-weight:500}
+  .card .go{font-size:11px;letter-spacing:.2em;text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;margin-top:10px;opacity:.9}
+  .card .go i{display:inline-block;width:22px;height:1px;background:currentColor;transition:width .3s}
+  .tile:hover .card .go i{width:38px}
+  .card .glyph{position:absolute;right:-6px;bottom:-18px;font-family:"Noto Serif SC",serif;font-weight:900;font-size:clamp(90px,12vw,150px);line-height:1;opacity:.10;pointer-events:none;user-select:none}
+  .card .pin{position:absolute;top:12px;right:14px;width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(201,162,74,.25)}
+
+  /* title tile */
+  .card.hero h1{font-family:"Cormorant Garamond",serif;font-weight:400;font-size:clamp(32px,4.6vw,64px);line-height:.95;margin:6px 0 0;letter-spacing:-.01em}
+  .card.hero h1 span{display:block;font-style:italic;color:var(--red);font-size:.78em;margin-top:2px}
+  .card.hero p{font-size:13px;line-height:1.5;color:#3f372f;max-width:34ch;margin:10px 0 0}
+  .card.hero .seal{
+    position:absolute;right:16px;bottom:16px;width:52px;height:52px;border:2px solid var(--red);border-radius:6px;
+    display:grid;place-items:center;font-family:"Noto Serif SC",serif;font-weight:900;color:var(--red);font-size:22px;line-height:1;
+    transform:rotate(-6deg);opacity:.9;
+  }
+  .card.hero .seal::before{content:"";position:absolute;inset:3px;border:1px solid var(--red);border-radius:3px;opacity:.6}
+
+  /* ---------- section marker ---------- */
+  .intro{max-width:1500px;margin:18px auto 22px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:0 4px}
+  .intro h2{font-family:"Cormorant Garamond",serif;font-weight:400;font-size:clamp(22px,3vw,34px);margin:0;line-height:1.1}
+  .intro h2 em{font-style:italic;color:var(--gold)}
+  .intro p{margin:0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ivory-3);opacity:.8}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ivory-3)}
+  .legend label{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;padding:4px 0;transition:color .25s}
+  .legend label:hover{color:var(--ivory)}
+  .legend input{position:absolute;opacity:0;width:0;height:0}
+  /* the checkbox is a tiny tile: face-up when checked, flipped to its back when not */
+  .legend i{position:relative;width:14px;height:18px;border-radius:3px;display:inline-block;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 0 rgba(0,0,0,.35);
+    transition:transform .4s cubic-bezier(.4,0,.2,1),opacity .3s,filter .3s}
+  .legend i::after{content:"";position:absolute;left:4px;top:3px;width:4px;height:8px;border:solid #f6efdf;border-width:0 2px 2px 0;transform:rotate(45deg);transition:opacity .2s}
+  .legend .g::after{border-color:var(--ink)}
+  .legend input:not(:checked) ~ i{transform:rotateY(180deg);filter:saturate(.3) brightness(.7)}
+  .legend input:not(:checked) ~ i::after{opacity:0}
+  .legend input:not(:checked) ~ i ~ *, .legend label:has(input:not(:checked)){color:rgba(216,203,174,.5)}
+  .legend input:focus-visible ~ i{outline:2px solid var(--gold);outline-offset:2px}
+  .legend .r{background:linear-gradient(160deg,#c43a33,#7e1d1a)}
+  .legend .j{background:linear-gradient(160deg,#2f7a5b,#163f30)}
+  .legend .k{background:linear-gradient(160deg,#3a332d,#161311)}
+  .legend .g{background:linear-gradient(160deg,#d4ad52,#8d6c25)}
+  .legend .p{background:linear-gradient(160deg,#7a6a5a,#3d3329)}
+  .legend .a{background:linear-gradient(160deg,#f6efdf,#d8cbae)}
+  .legend .a::after{border-color:var(--red)}
+  @media (max-width:700px){ .intro{flex-direction:column;align-items:flex-start;gap:12px} }
+
+  /* filtered-out cards */
+  .tile.event{transition:transform .35s cubic-bezier(.2,.8,.2,1), filter .35s, opacity .35s}
+  .tile.event.hide{display:none}
+  .tile.event.fade{opacity:0;transform:scale(.9)}
+  .tile.event.past{--c1:#7a6a5a;--c2:#3d3329;--e1:#2a2219;--e2:#1c1711}
+  .tile.event.past .card{filter:none}
+  .tile.event.past .card .kicker::before{background:var(--gold)}
+
+  /* ---------- footer ---------- */
+  footer{position:relative;z-index:1;border-top:1px solid rgba(244,236,217,.12);padding:36px clamp(16px,4vw,48px);display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:center;font-size:13px;color:var(--ivory-3)}
+  footer .f-brand{font-family:"Cormorant Garamond",serif;font-size:20px;color:var(--ivory)}
+  footer a{color:var(--gold);text-decoration:none}
+  footer .chars{font-family:"Noto Serif SC",serif;letter-spacing:.4em;opacity:.5}
+
+  @media (prefers-reduced-motion:reduce){
+    .tile{animation:none;opacity:1;transform:none}
+    .tile.ready,.tile.ready:hover{transform:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="brand" href="#">
+    <span class="mini">雀</span>
+    <span class="word">Mahjong <em>United</em></span>
+  </a>
+  <nav>
+    <a href="#events">Events</a>
+    <a href="#open-classes">Classes</a>
+    <a href="#about">About</a>
+    <a class="cta" href="#private-lessons">Reserve a lesson</a>
+  </nav>
+</header>
+
+<main>
+  <div class="intro">
+    <div>
+      <p>The wall</p>
+      <h2>Draw a tile. <em>Find your table.</em></h2>
+    </div>
+    <div class="legend" id="filters" role="radiogroup" aria-label="Show on the wall">
+      <label><input type="radio" name="kind" value="all" checked><i class="a"></i>All</label>
+      <label><input type="radio" name="kind" value="event"><i class="r"></i>Events</label>
+      <label><input type="radio" name="kind" value="open"><i class="j"></i>Open classes</label>
+      <label><input type="radio" name="kind" value="private"><i class="g"></i>Private lessons</label>
+      <label><input type="radio" name="kind" value="past"><i class="p"></i>Older events</label>
+      <label><input type="radio" name="kind" value="about"><i class="k"></i>About</label>
+    </div>
+  </div>
+
+  <section class="wall" id="wall" aria-label="Mahjong United — events and classes"></section>
+</main>
+
+<div id="overlay" aria-hidden="true">
+  <div class="dim"></div>
+  <div class="big"></div>
+  <div class="cap"></div>
+</div>
+
+<footer>
+  <div>
+    <div class="f-brand">Mahjong United</div>
+    <div>Run by Jennie Mak · <a href="mailto:hello@mahjongunited.com">hello@mahjongunited.com</a></div>
+  </div>
+  <div class="chars">東 南 西 北 中 發 白</div>
+  <div>© <span id="yr"></span> Mahjong United</div>
+</footer>
+
+<script>
+/* =========================================================
+   CONTENT lives in data/ as markdown files (see data/README.md).
+   The list below is only a fallback for when the page is opened
+   straight from disk, where fetch() can't read the files.
+   kind: "event" (red) | "open" (jade) | "private" (gold) | "past" (older event, bronze) | "about" (ink)
+   The buttons above the wall pick one kind. Every state has a URL:
+     #events · #open-classes · #private-lessons · #older-events · #about
+     #events/autumn-open-tournament   (that tile expanded)
+     #all/six-of-circles              (a plain tile expanded)
+   ========================================================= */
+const FALLBACK_CARDS = [
+  { kind:"event",   kicker:"Event",          title:"Autumn Open Tournament",   meta:"<b>Sat, Nov 22</b> · 1:00–6:00 pm<br>Riverdale Community Hall",   glyph:"中" },
+  { kind:"open",    kicker:"Open class",     title:"Beginners' Night",         meta:"<b>Every Tuesday</b> · 7:00 pm<br>Drop in · No experience needed", glyph:"發" },
+  { kind:"event",   kicker:"Event",          title:"Lunar New Year Social",    meta:"<b>Sat, Feb 14</b> · 6:00 pm<br>Dinner, play & prizes",             glyph:"福" },
+  { kind:"private", kicker:"By reservation", title:"Private Lessons",          meta:"One-on-one or small groups,<br>at your home or ours",                glyph:"白" },
+  { kind:"open",    kicker:"Open class",     title:"Strategy Workshop",        meta:"<b>First Sunday</b> monthly · 2:00 pm<br>For players who know the basics", glyph:"萬" },
+  { kind:"about",   kicker:"About",          title:"Jennie Mak",               meta:"Teacher, host, and founder of Mahjong United",                      glyph:"雀" },
+  { kind:"event",   kicker:"Event",          title:"Friday Night Tables",      meta:"<b>Every Friday</b> · 7:30 pm<br>Casual play, all levels",            glyph:"東" },
+  { kind:"past",    kicker:"Past event",     title:"Summer Garden Social",     meta:"<b>Jul 19</b> · Photos & results",                                    glyph:"夏" },
+  { kind:"past",    kicker:"Past event",     title:"Spring Invitational",      meta:"<b>Apr 12</b> · 32 players · Won by Mei L.",                          glyph:"春" },
+];
+
+/* ---------- seeded shuffle so layout is stable between loads ---------- */
+let seed = 20261106;
+const rnd = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+
+/* ---------- SVG tile faces ---------- */
+const NS = "http://www.w3.org/2000/svg";
+const W = 100, H = 136;
+
+function dot(cx, cy, r, color){
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>
+          <circle cx="${cx}" cy="${cy}" r="${r*.62}" fill="none" stroke="#f6efdf" stroke-width="${r*.16}"/>
+          <circle cx="${cx}" cy="${cy}" r="${r*.3}" fill="#f6efdf"/>`;
+}
+const DOT_COLORS = ["#2f7a5b","#b5302c","#2b4c7e"];
+function dots(n){
+  const grids = {
+    1:[[50,68]],
+    2:[[50,44],[50,92]],
+    3:[[30,40],[50,68],[70,96]],
+    4:[[32,44],[68,44],[32,92],[68,92]],
+    5:[[30,40],[70,40],[50,68],[30,96],[70,96]],
+    6:[[32,36],[68,36],[32,68],[68,68],[32,100],[68,100]],
+    7:[[26,32],[50,38],[74,44],[32,72],[68,72],[32,104],[68,104]],
+    8:[[32,30],[68,30],[32,56],[68,56],[32,82],[68,82],[32,108],[68,108]],
+    9:[[28,36],[50,36],[72,36],[28,68],[50,68],[72,68],[28,100],[50,100],[72,100]],
+  };
+  const pts = grids[n];
+  const r = n===1 ? 26 : n<=4 ? 15 : n<=6 ? 12 : 10;
+  return pts.map((p,i)=>{
+    const c = n===1 ? "#b5302c" : DOT_COLORS[(i + (n>=7 ? Math.floor(i/3) : 0)) % 3];
+    return dot(p[0],p[1],r,c);
+  }).join("");
+}
+function stick(x,y,h,color){
+  return `<rect x="${x-6}" y="${y}" width="12" height="${h}" rx="4" fill="${color}"/>
+          <rect x="${x-7}" y="${y+h*.33}" width="14" height="3" rx="1" fill="#f6efdf" opacity=".9"/>
+          <rect x="${x-7}" y="${y+h*.66}" width="14" height="3" rx="1" fill="#f6efdf" opacity=".9"/>`;
+}
+function bams(n){
+  if(n===1){ // the bird
+    return `<g fill="#2f7a5b">
+      <ellipse cx="52" cy="78" rx="22" ry="15"/>
+      <circle cx="34" cy="60" r="10"/>
+      <path d="M72 70 L92 56 L84 80 Z"/>
+      <path d="M50 92 L46 112 L56 112 Z" fill="#b5302c"/>
+      <path d="M26 58 L14 60 L26 64 Z" fill="#c9a24a"/>
+    </g>
+    <circle cx="36" cy="58" r="2" fill="#f6efdf"/>
+    <path d="M44 74 q10 -10 22 -2" stroke="#f6efdf" stroke-width="2" fill="none"/>
+    <path d="M22 118 q30 -8 56 0" stroke="#2b4c7e" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  }
+  const cols = {2:[50],3:[50],4:[36,64],5:[30,50,70],6:[30,50,70],7:[30,50,70],8:[30,50,70],9:[30,50,70]};
+  const layout = {
+    2:[[50,28,36,"#2f7a5b"],[50,72,36,"#2f7a5b"]],
+    3:[[50,24,30,"#2f7a5b"],[36,64,30,"#2f7a5b"],[64,64,30,"#2f7a5b"]],
+    4:[[36,26,36,"#2f7a5b"],[64,26,36,"#2f7a5b"],[36,74,36,"#2b4c7e"],[64,74,36,"#2b4c7e"]],
+    5:[[30,24,30,"#2f7a5b"],[70,24,30,"#2f7a5b"],[50,53,30,"#b5302c"],[30,82,30,"#2f7a5b"],[70,82,30,"#2f7a5b"]],
+    6:[[30,26,36,"#2f7a5b"],[50,26,36,"#2f7a5b"],[70,26,36,"#2f7a5b"],[30,74,36,"#2b4c7e"],[50,74,36,"#2b4c7e"],[70,74,36,"#2b4c7e"]],
+    7:[[50,16,28,"#b5302c"],[30,50,28,"#2f7a5b"],[50,50,28,"#2f7a5b"],[70,50,28,"#2f7a5b"],[30,84,28,"#2b4c7e"],[50,84,28,"#2b4c7e"],[70,84,28,"#2b4c7e"]],
+    8:[[30,20,24,"#2f7a5b"],[50,20,24,"#2f7a5b"],[70,20,24,"#2f7a5b"],[30,56,24,"#2b4c7e"],[50,56,24,"#2b4c7e"],[70,56,24,"#2b4c7e"],[40,92,24,"#b5302c"],[60,92,24,"#b5302c"]],
+    9:[[30,20,26,"#2f7a5b"],[50,20,26,"#2f7a5b"],[70,20,26,"#2f7a5b"],[30,55,26,"#b5302c"],[50,55,26,"#b5302c"],[70,55,26,"#b5302c"],[30,90,26,"#2b4c7e"],[50,90,26,"#2b4c7e"],[70,90,26,"#2b4c7e"]],
+  };
+  return layout[n].map(s=>stick(...s)).join("");
+}
+const NUM = ["","一","二","三","四","五","六","七","八","九"];
+function text(t, x, y, size, color, weight=900){
+  return `<text x="${x}" y="${y}" text-anchor="middle" font-family="'Noto Serif SC',serif" font-weight="${weight}" font-size="${size}" fill="${color}">${t}</text>`;
+}
+function craks(n){
+  return text(NUM[n],50,56,38,"#161311") + text("萬",50,114,46,"#b5302c");
+}
+function wind(ch){ return text(ch,50,92,66,"#161311"); }
+function dragon(ch){
+  if(ch==="白") return `<rect x="16" y="22" width="68" height="92" rx="4" fill="none" stroke="#2b4c7e" stroke-width="5"/>
+                         <rect x="24" y="30" width="52" height="76" rx="2" fill="none" stroke="#2b4c7e" stroke-width="1.5" opacity=".6"/>`;
+  return text(ch,50,92,66, ch==="中" ? "#b5302c" : "#2f7a5b");
+}
+function flower(ch, i){
+  return text(ch,50,88,52,"#2f7a5b") + text(String(i),20,30,16,"#b5302c",700);
+}
+function season(ch, i){
+  return text(ch,50,88,52,"#2b4c7e") + text(String(i),20,30,16,"#b5302c",700);
+}
+
+function plainTiles(){
+  const list = [];
+  const EN = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine"];
+  for(let i=1;i<=9;i++){
+    list.push([dots(i),  `${EN[i]} of Circles`]);
+    list.push([bams(i),  i===1 ? "One of Bamboo · the Sparrow" : `${EN[i]} of Bamboo`]);
+    list.push([craks(i), `${EN[i]} of Characters`]);
+  }
+  [["東","East Wind"],["南","South Wind"],["西","West Wind"],["北","North Wind"]].forEach(([c,n])=>list.push([wind(c),n]));
+  [["中","Red Dragon"],["發","Green Dragon"],["白","White Dragon"]].forEach(([c,n])=>list.push([dragon(c),n]));
+  [["梅","Plum"],["蘭","Orchid"],["菊","Chrysanthemum"],["竹","Bamboo"]].forEach(([c,n],i)=>list.push([flower(c,i+1),`Flower · ${n}`]));
+  [["春","Spring"],["夏","Summer"],["秋","Autumn"],["冬","Winter"]].forEach(([c,n],i)=>list.push([season(c,i+1),`Season · ${n}`]));
+  return list;
+}
+
+/* ---------- loading content from data/*.md ---------- */
+function parseFrontmatter(text){
+  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  if(!m) return { meta:{}, body:text };
+  const meta = {};
+  m[1].split(/\r?\n/).forEach(line=>{
+    const i = line.indexOf(":"); if(i < 0) return;
+    let v = line.slice(i+1).trim().replace(/\s+#.*$/,"");   // strip trailing comments
+    meta[line.slice(0,i).trim()] = v.replace(/^["']|["']$/g,"");
+  });
+  return { meta, body:m[2].trim() };
+}
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function inlineMd(s){
+  return esc(s)
+    .replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")
+    .replace(/\*(.+?)\*/g,"<i>$1</i>")
+    .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2">$1</a>');
+}
+function markdown(md){                       // just enough: headings, paragraphs, lists, bold/italic/links
+  return md.split(/\n{2,}/).map(block=>{
+    block = block.trim(); if(!block) return "";
+    if(/^#{1,3}\s/.test(block)) return `<h4>${inlineMd(block.replace(/^#+\s*/,""))}</h4>`;
+    if(/^[-*]\s/m.test(block)) return `<ul>${block.split(/\n/).map(l=>`<li>${inlineMd(l.replace(/^[-*]\s*/,""))}</li>`).join("")}</ul>`;
+    return `<p>${inlineMd(block).replace(/\n/g,"<br>")}</p>`;
+  }).join("");
+}
+const KICKER = { event:"Event", past:"Past event", open:"Open class", private:"By reservation", about:"About" };
+function fmtDate(iso){
+  const d = new Date(iso + "T12:00:00");
+  return d.toLocaleDateString("en-US", { weekday:"short", month:"short", day:"numeric" });
+}
+function cardFromFile(path, text){
+  const { meta, body } = parseFrontmatter(text);
+  let kind = meta.kind || "event";
+  const today = new Date().toISOString().slice(0,10);
+  if(kind === "event" && meta.date && meta.date < today) kind = "past";
+  const when = meta.date ? fmtDate(meta.date) : meta.recurring || "";
+  const line1 = [when, meta.time].filter(Boolean).join(" · ");
+  const metaHtml = [line1 ? `<b>${esc(when)}</b>${meta.time ? " · " + esc(meta.time) : ""}` : "", meta.location ? esc(meta.location) : ""].filter(Boolean).join("<br>")
+                 || inlineMd(body.split(/\n{2,}/)[0]);
+  return { kind, kicker: meta.kicker || KICKER[kind], title: meta.title || path, meta: metaHtml, glyph: meta.glyph || "雀", body: markdown(body), path };
+}
+async function loadContent(){
+  try{
+    const files = await (await fetch("data/index.json", {cache:"no-cache"})).json();
+    const cards = await Promise.all(files.map(async f=>cardFromFile(f, await (await fetch("data/"+f, {cache:"no-cache"})).text())));
+    return cards;
+  }catch(e){
+    console.warn("Could not load data/ — using the fallback content baked into index.html.", e);
+    return FALLBACK_CARDS;
+  }
+}
+
+loadContent().then(init);
+
+function init(CARDS){
+/* ---------- build the wall ---------- */
+const wall = document.getElementById("wall");
+const frag = document.createDocumentFragment();
+let delay = 0;
+const addDelay = () => { delay += 28; return delay; };
+
+function faceSVG(inner){
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${inner}</svg>`;
+}
+const slugify = s => s.toLowerCase().replace(/['’]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const FILTER_SLUG = { all:"all", event:"events", open:"open-classes", private:"private-lessons", past:"older-events", about:"about" };
+const SLUG_FILTER = Object.fromEntries(Object.entries(FILTER_SLUG).map(([k,v])=>[v,k]));
+
+function plainTile([inner, name]){
+  const el = document.createElement("div");
+  el.className = "tile";
+  el.dataset.slug = slugify(name);
+  el.style.setProperty("--rot", ((rnd()-.5)*1.6).toFixed(2)+"deg");
+  el.style.setProperty("--d", addDelay()+"ms");
+  el.dataset.name = name;
+  el.innerHTML = `<div class="inner"><div class="face">${faceSVG(inner)}</div><div class="back"></div></div>`;
+  return el;
+}
+const KIND_CLASS = { event:"red", open:"jade", private:"gold", past:"past", about:"ink" };
+function cardTile(c){
+  const el = document.createElement("div");
+  el.className = "tile event " + KIND_CLASS[c.kind];
+  el.dataset.kind = c.kind;
+  el.style.setProperty("--rot", ((rnd()-.5)*0.8).toFixed(2)+"deg");
+  el.style.setProperty("--d", addDelay()+"ms");
+  el.dataset.name = c.title;
+  el.dataset.slug = slugify(c.title);
+  el.innerHTML = `
+    <div class="inner"><div class="face">
+      <a class="card" href="#${FILTER_SLUG[c.kind]}/${el.dataset.slug}">
+        <div>
+          <div class="kicker">${c.kicker}</div>
+          <h3>${c.title}</h3>
+          <div class="meta">${c.meta}</div>
+          <div class="body">${c.body || ""}</div>
+        </div>
+        <div class="go">${c.kind==="private" ? "Reserve" : c.kind==="about" ? "Read more" : "Details"} <i></i></div>
+        <div class="glyph">${c.glyph}</div>
+        <div class="pin"></div>
+      </a>
+    </div><div class="back"></div></div>`;
+  return el;
+}
+function titleTile(){
+  const el = document.createElement("div");
+  el.className = "tile title";
+  el.style.setProperty("--rot","-0.4deg");
+  el.style.setProperty("--d", addDelay()+"ms");
+  el.dataset.name = "Mahjong United";
+  el.dataset.slug = "mahjong-united";
+  el.innerHTML = `
+    <div class="inner"><div class="face">
+      <div class="card hero">
+        <div>
+          <div class="kicker">Washington, DC · Est. 2024</div>
+          <h1>Mahjong<span>United</span></h1>
+          <p>Events, open classes and private lessons for anyone who wants to learn the game — or play it better.</p>
+        </div>
+        <div class="seal">雀</div>
+      </div>
+    </div><div class="back"></div></div>`;
+  return el;
+}
+
+// shuffle plain tiles and interleave the cards at pleasing intervals
+const plain = plainTiles();
+for(let i=plain.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [plain[i],plain[j]]=[plain[j],plain[i]]; }
+// extra copies so the wall feels full
+const pool = plain.concat(plain.slice(0,18));
+
+frag.appendChild(titleTile());
+let ci = 0;
+pool.forEach((inner, i)=>{
+  if(i % 6 === 2 && ci < CARDS.length){ frag.appendChild(cardTile(CARDS[ci++])); }
+  frag.appendChild(plainTile(inner));
+});
+while(ci < CARDS.length) frag.appendChild(cardTile(CARDS[ci++]));
+wall.appendChild(frag);
+
+// after the drop-in animation, hand control to the hover transform
+wall.querySelectorAll(".tile").forEach(t=>{
+  t.addEventListener("animationend", ()=>t.classList.add("ready"), {once:true});
+});
+
+// gentle parallax tilt following the pointer
+wall.addEventListener("pointermove", e=>{
+  const t = e.target.closest(".tile.ready"); if(!t) return;
+  const r = t.getBoundingClientRect();
+  const x = (e.clientX - r.left)/r.width - .5, y = (e.clientY - r.top)/r.height - .5;
+  t.style.setProperty("--tilt-y", (x*10).toFixed(1)+"deg");
+  t.style.setProperty("--tilt-x", (-y*10).toFixed(1)+"deg");
+});
+wall.addEventListener("pointerout", e=>{
+  const t = e.target.closest(".tile"); if(!t) return;
+  t.style.setProperty("--tilt-x","0deg"); t.style.setProperty("--tilt-y","0deg");
+});
+
+/* ---------- radio buttons: show one kind of card, or all ---------- */
+const filters = document.getElementById("filters");
+const ORDER = [...wall.children];   // original sequence, restored when "All" is picked
+function applyFilters(animate){
+  const pick = filters.querySelector("input:checked").value;
+  // with one kind picked, bring its cards up to the top of the wall so they're the first thing you see
+  if(pick === "all"){ ORDER.forEach(t=>wall.appendChild(t)); }
+  else {
+    const first = wall.querySelector(".tile.title");
+    const cards = ORDER.filter(t=>t.dataset.kind === pick);
+    cards.reverse().forEach(t=>first.after(t));
+  }
+  wall.querySelectorAll(".tile.event[data-kind]").forEach(t=>{
+    const show = pick === "all" || t.dataset.kind === pick;
+    if(show){
+      if(!t.classList.contains("hide") && !t.classList.contains("fade")) return;
+      t.classList.remove("hide");
+      if(animate){ t.classList.add("fade"); void t.offsetWidth; }
+      t.classList.remove("fade");
+    } else {
+      if(t.classList.contains("hide")) return;
+      if(animate){ t.classList.add("fade"); setTimeout(()=>t.classList.add("hide"), 350); }
+      else t.classList.add("hide");
+    }
+  });
+}
+filters.addEventListener("change", ()=>{ if(openTile) collapse(); applyFilters(true); syncHash(); });
+
+/* ---------- click: expand one tile, turn the rest face-down ---------- */
+const overlay = document.getElementById("overlay");
+const big = overlay.querySelector(".big");
+const cap = overlay.querySelector(".cap");
+let openTile = null;
+const pageRect = el => { const r = el.getBoundingClientRect();
+  return { left:r.left+scrollX, top:r.top+scrollY, right:r.right+scrollX, bottom:r.bottom+scrollY, width:r.width, height:r.height }; };
+
+function expand(tile){
+  openTile = tile;
+  const r = pageRect(tile), wr = pageRect(wall);
+  // target size: keep tile aspect, fit the viewport
+  const ratio = r.width / r.height;
+  const plain = !tile.classList.contains("event") && !tile.classList.contains("title");
+  const maxW = Math.min(window.innerWidth * .82, plain ? 360 : 760);
+  const maxH = window.innerHeight * .70;
+  let w = maxW, h = w / ratio; if(h > maxH){ h = maxH; w = h * ratio; }
+  // grow outward from the tile's own centre, but stay inside the wall
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  const tx = Math.max(wr.left, Math.min(cx - w/2, wr.right - w));
+  const ty = Math.max(wr.top,  Math.min(cy - h/2, wr.bottom - h));
+
+  big.className = "big tile ready " + [...tile.classList].filter(c=>!["tile","ready","down"].includes(c)).join(" ");
+  big.innerHTML = tile.querySelector(".face").outerHTML;
+  big.style.width = r.width+"px"; big.style.height = r.height+"px";
+  big.style.transform = `translate(${r.left}px,${r.top}px)`;
+  // bring the expanded tile into view
+  window.scrollTo({ top: Math.max(0, ty + h/2 - window.innerHeight/2), behavior:"smooth" });
+  cap.innerHTML = tile.dataset.name + "<small>click anywhere to turn the wall back over</small>";
+  tile.style.visibility = "hidden";
+
+  overlay.classList.add("on");
+  wall.querySelectorAll(".tile").forEach(t=>{ if(t!==tile) t.classList.add("down"); });
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    overlay.classList.add("in");
+    big.style.width = w+"px"; big.style.height = h+"px";
+    big.style.transform = `translate(${tx}px,${ty}px) scale(1)`;
+  }));
+}
+function collapse(){
+  if(!openTile) return;
+  const tile = openTile; openTile = null;
+  const r = pageRect(tile);
+  overlay.classList.remove("in");
+  big.style.width = r.width+"px"; big.style.height = r.height+"px";
+  big.style.transform = `translate(${r.left}px,${r.top}px)`;
+  wall.querySelectorAll(".tile.down").forEach(t=>t.classList.remove("down"));
+  setTimeout(()=>{ tile.style.visibility = ""; overlay.classList.remove("on"); }, 700);
+}
+
+document.addEventListener("click", e=>{
+  if(e.target.closest("header nav a")) return;              // nav links just change the hash; the router handles it
+  if(openTile){                                             // a tile is open: any click (a face-down tile, the big tile,
+    e.preventDefault(); collapse(); syncHash(); return;     // the backdrop) turns the whole wall back over
+  }
+  const t = e.target.closest("#wall .tile"); if(!t) return;
+  e.preventDefault();
+  expand(t); syncHash();
+});
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && openTile){ collapse(); syncHash(); } });
+window.addEventListener("resize", ()=>{ if(openTile){ const t=openTile; collapse(); setTimeout(()=>expand(t),720);} });
+
+/* ---------- URL routing: every state of the wall is a shareable #url ---------- */
+let routing = false;
+function currentHash(){
+  const pick = filters.querySelector("input:checked").value;
+  if(openTile) return FILTER_SLUG[pick] + "/" + openTile.dataset.slug;
+  return pick === "all" ? "" : FILTER_SLUG[pick];
+}
+function syncHash(){                       // state → URL
+  const h = currentHash();
+  if(h === location.hash.replace(/^#/,"")) return;
+  routing = true;
+  if(h) history.pushState(null, "", "#" + h);
+  else  history.pushState(null, "", location.pathname + location.search);
+  routing = false;
+}
+function readHash(animate){                // URL → state
+  const [f = "", slug = ""] = location.hash.replace(/^#/,"").split("/");
+  const kind = SLUG_FILTER[f] || "all";
+  const radio = filters.querySelector(`input[value="${kind}"]`);
+  const changed = !radio.checked;
+  if(changed){ radio.checked = true; }
+  if(openTile && (changed || openTile.dataset.slug !== slug)) collapse();
+  if(changed) applyFilters(animate);
+  if(slug && !openTile){
+    const t = [...wall.querySelectorAll(".tile")].find(t=>t.dataset.slug === slug && !t.classList.contains("hide"));
+    if(t) setTimeout(()=>{ if(!openTile) expand(t); }, animate ? 100 : 350);
+  }
+}
+window.addEventListener("hashchange", ()=>{ if(!routing) readHash(true); });
+applyFilters(false);
+readHash(false);
+
+document.getElementById("yr").textContent = new Date().getFullYear();
+} // init
+</script>
+</body>
+</html>
