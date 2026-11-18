@@ -1,5 +1,5 @@
 ---
-title: Friday Night Tables
+title: Friday Night Mahjong Club
 kind: event
 recurring: Every Friday
 time: 7:30 pm
