@@ -1,9 +1,9 @@
 ---
-title: Friday Night Mahjong Club
+title: Mahjong Club @CAMDC
 kind: event
 recurring: Every Friday
-time: 6:30 pm
-location: Our studio
+time: 6:30 pm - 10:30 pm
+location: Chinese American Museum DC - 1218 16th Street, NW Washington DC 20036
 glyph: 東
 ---
 
